@@ -92,6 +92,17 @@ class MovieDetailsViewController: UIViewController {
         metacriticRatingView.isHidden = true
         imdbRatingView.isHidden = true
         
+//       Initialize rating views with "N/A" so that when ratings not available, it shows N/A
+        internetRatingView.source = "Internet Movie Database"
+        internetRatingView.value = "Not Available"
+
+        rottenTomatoesRatingView.source = "Rotten Tomatoes"
+        rottenTomatoesRatingView.value = "Not Available"
+
+        metacriticRatingView.source = "Metacritic"
+        metacriticRatingView.value = "Not Available"
+
+        
         for rating in movie.Ratings {
             switch rating.Source {
             case "Internet Movie Database":
