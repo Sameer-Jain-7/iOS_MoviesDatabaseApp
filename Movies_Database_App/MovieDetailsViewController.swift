@@ -9,6 +9,7 @@ import Foundation
 import UIKit
 
 
+
 class MovieDetailsViewController: UIViewController {
     
     var movie: Movie?
@@ -23,13 +24,16 @@ class MovieDetailsViewController: UIViewController {
     @IBOutlet weak var plotLabel: UILabel!
     @IBOutlet weak var plotScrollView: UIScrollView!
     
-    @IBOutlet weak var ratingSegmentedControl: UISegmentedControl!
+//    @IBOutlet weak var ratingSegmentedControl: UISegmentedControl!
     
     
     @IBOutlet weak var imdbRatingView: CustomRatingView!
     @IBOutlet weak var internetRatingView: CustomRatingView!
     @IBOutlet weak var rottenTomatoesRatingView: CustomRatingView!
     @IBOutlet weak var metacriticRatingView: CustomRatingView!
+    
+    
+    @IBOutlet weak var ratingSegmentedControl: CustomSegmentedControl!
     
     @IBOutlet weak var castLabelHeightConstraint: NSLayoutConstraint!
     
@@ -71,13 +75,20 @@ class MovieDetailsViewController: UIViewController {
             
             plotScrollView.contentSize = CGSize(width: plotScrollView.frame.width, height: plotLabelSize.height)
             
-            ratingSegmentedControl.addTarget(self, action: #selector(ratingSourceChanged(_:)), for: .valueChanged)
-            
+            // Configure segmented control
+                        ratingSegmentedControl.removeAllSegments()
+                        for (index, source) in ["IMDB", "Internet", "Rotten Tomatoes", "Metacritic"].enumerated() {
+                            ratingSegmentedControl.insertSegment(withTitle: source, at: index, animated: false)
+                        }
+                        ratingSegmentedControl.selectedSegmentIndex = 0 // Set initial selection
+                        
+                        ratingSegmentedControl.addTarget(self, action: #selector(ratingSourceChanged(_:)), for: .valueChanged)
+                       
             setupRatingViews()
         }
     }
     
-    @objc func ratingSourceChanged(_ sender: UISegmentedControl) {
+    @objc func ratingSourceChanged(_ sender: CustomSegmentedControl) {
         updateRatingViews()
     }
     
@@ -134,7 +145,9 @@ class MovieDetailsViewController: UIViewController {
         metacriticRatingView.isHidden = true
         imdbRatingView.isHidden = true
         
-        let selectedSource = ratingSegmentedControl.titleForSegment(at: ratingSegmentedControl.selectedSegmentIndex)
+//        let selectedSource = ratingSegmentedControl.titleForSegment(at: ratingSegmentedControl.selectedSegmentIndex)
+        let selectedSource = ratingSegmentedControl.buttonTexts[ratingSegmentedControl.selectedIndex]
+
                
               
         
@@ -193,3 +206,8 @@ class MovieDetailsViewController: UIViewController {
     
 }
 
+extension MovieDetailsViewController: CustomSegmentedControlDelegate {
+    func segmentedControl(_ segmentedControl: CustomSegmentedControl, didSelectIndex index: Int) {
+        ratingSourceChanged(segmentedControl)
+    }
+}
