@@ -9,10 +9,10 @@ import Foundation
 import UIKit
 
 
-
 class MovieDetailsViewController: UIViewController {
     
     var movie: Movie?
+    var segmentIndex = 0
     
 //    UIElements for movie details page
     
@@ -24,16 +24,12 @@ class MovieDetailsViewController: UIViewController {
     @IBOutlet weak var plotLabel: UILabel!
     @IBOutlet weak var plotScrollView: UIScrollView!
     
-//    @IBOutlet weak var ratingSegmentedControl: UISegmentedControl!
     
+    @IBOutlet weak var segmentedControl: CustomSegmentedControl!
     
-    @IBOutlet weak var imdbRatingView: CustomRatingView!
     @IBOutlet weak var internetRatingView: CustomRatingView!
     @IBOutlet weak var rottenTomatoesRatingView: CustomRatingView!
     @IBOutlet weak var metacriticRatingView: CustomRatingView!
-    
-    
-    @IBOutlet weak var ratingSegmentedControl: CustomSegmentedControl!
     
     @IBOutlet weak var castLabelHeightConstraint: NSLayoutConstraint!
     
@@ -44,6 +40,7 @@ class MovieDetailsViewController: UIViewController {
         titleLabel.adjustsFontSizeToFitWidth = true
         titleLabel.minimumScaleFactor = 0.5
         updateCastLabelHeight()
+        
         
         if let movie = movie {
 //           Adding the texts to labels
@@ -75,20 +72,20 @@ class MovieDetailsViewController: UIViewController {
             
             plotScrollView.contentSize = CGSize(width: plotScrollView.frame.width, height: plotLabelSize.height)
             
-            // Configure segmented control
-                        ratingSegmentedControl.removeAllSegments()
-                        for (index, source) in ["IMDB", "Internet", "Rotten Tomatoes", "Metacritic"].enumerated() {
-                            ratingSegmentedControl.insertSegment(withTitle: source, at: index, animated: false)
-                        }
-                        ratingSegmentedControl.selectedSegmentIndex = 0 // Set initial selection
-                        
-                        ratingSegmentedControl.addTarget(self, action: #selector(ratingSourceChanged(_:)), for: .valueChanged)
-                       
+            
+            segmentedControl.didTapSegment = {index in
+                self.segmentIndex = index
+                self.updateRatingViews()
+            }
+            
+            
+//            ratingSegmentedControl.addTarget(self, action: #selector(ratingSourceChanged(_:)), for: .valueChanged)
+            
             setupRatingViews()
         }
     }
     
-    @objc func ratingSourceChanged(_ sender: CustomSegmentedControl) {
+    @objc func ratingSourceChanged(_ sender: UISegmentedControl) {
         updateRatingViews()
     }
     
@@ -101,10 +98,9 @@ class MovieDetailsViewController: UIViewController {
         internetRatingView.isHidden = true
         rottenTomatoesRatingView.isHidden = true
         metacriticRatingView.isHidden = true
-        imdbRatingView.isHidden = true
         
 //       Initialize rating views with "N/A" so that when ratings not available, it shows N/A
-        internetRatingView.source = "Internet Movie Database"
+        internetRatingView.source = "IMDB"
         internetRatingView.value = "Not Available"
 
         rottenTomatoesRatingView.source = "Rotten Tomatoes"
@@ -114,10 +110,11 @@ class MovieDetailsViewController: UIViewController {
         metacriticRatingView.value = "Not Available"
 
         
+        
         for rating in movie.Ratings {
             switch rating.Source {
             case "Internet Movie Database":
-                internetRatingView.source = "Internet Movie Database"
+                internetRatingView.source = "IMDB"
                 internetRatingView.value = rating.Value
             case "Rotten Tomatoes":
                 rottenTomatoesRatingView.source = "Rotten Tomatoes"
@@ -129,8 +126,6 @@ class MovieDetailsViewController: UIViewController {
                 break
             }
         }
-        imdbRatingView.source = "IMDB"
-        imdbRatingView.value = movie.imdbRating
         
         updateRatingViews()
     }
@@ -143,31 +138,20 @@ class MovieDetailsViewController: UIViewController {
         internetRatingView.isHidden = true
         rottenTomatoesRatingView.isHidden = true
         metacriticRatingView.isHidden = true
-        imdbRatingView.isHidden = true
-        
-//        let selectedSource = ratingSegmentedControl.titleForSegment(at: ratingSegmentedControl.selectedSegmentIndex)
-        let selectedSource = ratingSegmentedControl.buttonTexts[ratingSegmentedControl.selectedIndex]
-
-               
-              
-        
+                
         // switch to show the selected rating view
-        switch selectedSource {
-        case "Internet Movie Database":
+        switch self.segmentIndex {
+        case 0:
             if internetRatingView.value != "0.0" {
                 internetRatingView.isHidden = false
             }
-        case "Rotten Tomatoes":
+        case 1:
             if rottenTomatoesRatingView.value != "0.0" {
                 rottenTomatoesRatingView.isHidden = false
             }
-        case "Metacritic":
+        case 2:
             if metacriticRatingView.value != "0.0" {
                 metacriticRatingView.isHidden = false
-            }
-        case "IMDB":
-            if imdbRatingView.value != "0.0" {
-                imdbRatingView.isHidden = false
             }
         default:
             break
@@ -206,8 +190,3 @@ class MovieDetailsViewController: UIViewController {
     
 }
 
-extension MovieDetailsViewController: CustomSegmentedControlDelegate {
-    func segmentedControl(_ segmentedControl: CustomSegmentedControl, didSelectIndex index: Int) {
-        ratingSourceChanged(segmentedControl)
-    }
-}

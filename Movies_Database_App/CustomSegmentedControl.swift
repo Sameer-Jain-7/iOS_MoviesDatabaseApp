@@ -5,127 +5,250 @@
 //  Created by 1916782 on 15/07/24.
 //
 
+import Foundation
 import UIKit
 
-protocol CustomSegmentedControlDelegate: AnyObject {
-    func segmentedControl(_ segmentedControl: CustomSegmentedControl, didSelectIndex index: Int)
-}
-
-@IBDesignable
-class CustomSegmentedControl: UISegmentedControl {
-
-    weak var delegate: CustomSegmentedControlDelegate?
-
-    private var buttons = [UIButton]()
-    private var selector: UIView!
-
-    var selectedIndex: Int = 0 {
+class CustomSegmentedControl: UIView {
+    //MARK: - Properties
+    var stackView: UIStackView = UIStackView()
+    var buttonsCollection: [UIButton] = []
+    var currentIndexView: UIView = UIView(frame: .zero)
+    
+    var buttonPadding: CGFloat = 5
+    var stackViewSpacing: CGFloat = 0
+    
+    //MARK: - Callback
+    var didTapSegment: ((Int) -> ())?
+    
+    //MARK: - Inspectable Properties
+    @IBInspectable var currentIndex: Int = 0 {
         didSet {
-            updateView()
+            setCurrentIndex()
         }
     }
-
-    @IBInspectable
-    var buttonTexts: [String] = [] {
+    
+    @IBInspectable var currentIndexTitleColor: UIColor = .white {
         didSet {
-            setupButtons()
+            updateTextColors()
         }
     }
-
-    @IBInspectable
-    var selectorColor: UIColor = .blue {
+    
+    @IBInspectable var currentIndexBackgroundColor: UIColor = .gray {
         didSet {
-            selector.backgroundColor = selectorColor
+            setCurrentViewBackgroundColor()
         }
     }
-
-    @IBInspectable
-    var textColor: UIColor = .black {
+    
+    @IBInspectable var otherIndexTitleColor: UIColor = .gray {
         didSet {
-            updateView()
+            updateTextColors()
         }
     }
-
-    @IBInspectable
-    var selectorTextColor: UIColor = .white {
+    
+    @IBInspectable var cornerRadius: CGFloat = 15 {
         didSet {
-            updateView()
+            setCornerRadius()
         }
     }
-
-    override init(frame: CGRect) {
+    
+    @IBInspectable var buttonCornerRadius: CGFloat = 10 {
+        didSet {
+            setButtonCornerRadius()
+        }
+    }
+    
+    @IBInspectable var borderColor: UIColor = .gray {
+        didSet {
+            setBorderColor()
+        }
+    }
+    
+    @IBInspectable var borderWidth: CGFloat = 1 {
+        didSet {
+            setBorderWidth()
+        }
+    }
+    
+    @IBInspectable var numberOfSegments: Int = 3 {
+        didSet {
+            addSegments()
+        }
+    }
+    
+    @IBInspectable var segmentsTitle: String = "IMDB,Rotten Tomatoes,Metacritic" {
+        didSet {
+            updateSegmentTitles()
+        }
+    }
+    
+    //MARK: - Life cycle
+    override init(frame: CGRect) { //From code
         super.init(frame: frame)
-        setupView()
+        
+        commonInit()
     }
-
-    required init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-        setupView()
+    
+    required init?(coder: NSCoder) { //From IB
+        super.init(coder: coder)
+        
+        commonInit()
     }
-
-    private func setupView() {
-        backgroundColor = .clear
-        createSelector()
-        setupButtons()
-    }
-
-    private func createSelector() {
-        selector = UIView(frame: CGRect(x: 0, y: 0, width: frame.width / CGFloat(buttonTexts.count), height: frame.height))
-        selector.layer.cornerRadius = frame.height / 2
-        selector.backgroundColor = selectorColor
-        addSubview(selector)
-    }
-
-    private func setupButtons() {
-        buttons.forEach { $0.removeFromSuperview() }
-        buttons.removeAll()
-
-        for (index, title) in buttonTexts.enumerated() {
-            let button = UIButton(type: .system)
-            button.setTitle(title, for: .normal)
-            button.setTitleColor(textColor, for: .normal)
-            button.addTarget(self, action: #selector(buttonTapped(_:)), for: .touchUpInside)
-            button.titleLabel?.font = UIFont.systemFont(ofSize: 16.0)
-            button.tag = index
-            buttons.append(button)
-            addSubview(button)
-        }
-        updateView()
-    }
-
+    
     override func layoutSubviews() {
         super.layoutSubviews()
-
-        guard !frame.width.isNaN, !frame.height.isNaN, !selector.frame.width.isNaN else {
-            print("Invalid frame values detected.")
-            return
-        }
-
-        let buttonWidth = frame.width / CGFloat(buttonTexts.count)
-
-        for (index, button) in buttons.enumerated() {
-            button.frame = CGRect(x: buttonWidth * CGFloat(index), y: 0, width: buttonWidth, height: frame.height)
-        }
-
-        selector.frame.size.width = frame.width / CGFloat(buttonTexts.count)
+        
+        setCurrentIndex()
     }
-
-
-
-
-    @objc private func buttonTapped(_ sender: UIButton) {
-        selectedIndex = sender.tag
-        delegate?.segmentedControl(self, didSelectIndex: selectedIndex)
+    
+    //MARK: - Functions
+    private func commonInit() {
+        backgroundColor = .clear
+        
+        setupStackView()
+        addSegments()
+        setCurrentIndexView()
+        setCurrentIndex(animated: false)
+        
+        setCornerRadius()
+        setButtonCornerRadius()
+        setBorderColor()
+        setBorderWidth()
     }
-
-    private func updateView() {
-        for (index, button) in buttons.enumerated() {
-            button.setTitleColor(index == selectedIndex ? selectorTextColor : textColor, for: .normal)
+    
+    private func setCurrentIndexView() {
+        setCurrentViewBackgroundColor()
+        
+        addSubview(currentIndexView)
+        sendSubviewToBack(currentIndexView)
+    }
+    
+    private func setCurrentIndex(animated: Bool = true) {
+        stackView.subviews.enumerated().forEach { (index, view) in
+            let button: UIButton? = view as? UIButton
+            
+            if index == currentIndex {
+                let buttonWidth = (frame.width - (buttonPadding * 2)) / CGFloat(numberOfSegments)
+                
+                if animated {
+                    UIView.animate(withDuration: 0.3) {
+                        self.currentIndexView.frame =
+                            CGRect(x: self.buttonPadding + (buttonWidth * CGFloat(index)),
+                               y: self.buttonPadding,
+                               width: buttonWidth,
+                               height: self.frame.height - (self.buttonPadding * 2))
+                    }
+                } else {
+                    self.currentIndexView.frame =
+                        CGRect(x: self.buttonPadding + (buttonWidth * CGFloat(index)),
+                           y: self.buttonPadding,
+                           width: buttonWidth,
+                           height: self.frame.height - (self.buttonPadding * 2))
+                }
+                
+                button?.setTitleColor(currentIndexTitleColor, for: .normal)
+            } else {
+                button?.setTitleColor(otherIndexTitleColor, for: .normal)
+            }
+        }
+    }
+    
+    private func updateTextColors() {
+        stackView.subviews.enumerated().forEach { (index, view) in
+            let button: UIButton? = view as? UIButton
+            
+            if index == currentIndex {
+                button?.setTitleColor(currentIndexTitleColor, for: .normal)
+            } else {
+                button?.setTitleColor(otherIndexTitleColor, for: .normal)
+            }
+        }
+    }
+    
+    private func setCurrentViewBackgroundColor() {
+        currentIndexView.backgroundColor = currentIndexBackgroundColor
+    }
+    
+    private func setupStackView() {
+        stackView.alignment = .fill
+        stackView.distribution = .fillEqually
+        stackView.spacing = stackViewSpacing
+        addSubview(stackView)
+        
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate(
+            [
+                stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: buttonPadding),
+                stackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -buttonPadding),
+                stackView.topAnchor.constraint(equalTo: topAnchor, constant: buttonPadding),
+                stackView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -buttonPadding)
+            ]
+        )
+    }
+    
+    private func addSegments() {
+        //Remove buttons
+        buttonsCollection.removeAll()
+        stackView.subviews.forEach { view in
+            (view as? UIButton)?.removeFromSuperview()
         }
 
-        let selectorStartPosition = frame.width / CGFloat(buttonTexts.count) * CGFloat(selectedIndex)
-        UIView.animate(withDuration: 0.3) {
-            self.selector.frame.origin.x = selectorStartPosition
+        let titles = segmentsTitle.split(separator: ",")
+        
+        for index in 0 ..< numberOfSegments {
+            let button = UIButton()
+            button.tag = index
+            
+            if let index = titles.indices.contains(index) ? index : nil {
+                button.setTitle(String(titles[index]), for: .normal)
+                button.titleLabel?.numberOfLines = 0
+            } else {
+                button.setTitle("<Segment>", for: .normal)
+                button.titleLabel?.numberOfLines = 0
+            }
+            
+            button.titleLabel?.font = .systemFont(ofSize: 16)
+            button.addTarget(self, action: #selector(segmentTapped(_:)), for: .touchUpInside)
+            
+            stackView.addArrangedSubview(button)
+            buttonsCollection.append(button)
         }
+    }
+    
+    private func updateSegmentTitles() {
+        let titles = segmentsTitle.split(separator: ",")
+        
+        stackView.subviews.enumerated().forEach { (index, view) in
+            if let index = titles.indices.contains(index) ? index : nil {
+                (view as? UIButton)?.setTitle(String(titles[index]), for: .normal)
+            } else {
+                (view as? UIButton)?.setTitle("<Segment>", for: .normal)
+            }
+        }
+    }
+    
+    private func setCornerRadius() {
+        layer.cornerRadius = cornerRadius
+    }
+    
+    private func setButtonCornerRadius() {
+        stackView.subviews.forEach { view in
+            (view as? UIButton)?.layer.cornerRadius = cornerRadius
+        }
+        
+        currentIndexView.layer.cornerRadius = cornerRadius
+    }
+    
+    private func setBorderColor() {
+        layer.borderColor = borderColor.cgColor
+    }
+    
+    private func setBorderWidth() {
+        layer.borderWidth = borderWidth
+    }
+    
+    //MARK: - IBActions
+    @objc func segmentTapped(_ sender: UIButton) {
+        didTapSegment?(sender.tag)
+        currentIndex = sender.tag
     }
 }
